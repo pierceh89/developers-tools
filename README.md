@@ -110,130 +110,178 @@ Deployment flow:
 3. The site is built with `npm run build`
 4. The `dist/` directory is uploaded and deployed to GitHub Pages
 
-## Next Tool Roadmap
+## Feature Development Plan (Hash Generator / Diff Checker / Cron Builder-Parser)
 
-These are the most useful next additions after the current MVP.
+요청사항 반영 원칙:
 
-### Tier 1: High-value additions
+- 각 기능은 **별도 feature 브랜치**에서 개발한다.
+- 각 기능 명세는 개발 시작 전에 **GitHub Issue**로 생성한다.
+- 구현 우선순위는 `Hash Generator -> Diff Checker -> Cron Expression Builder/Parser` 순서로 진행한다.
 
-#### 1. Hash Generator
+---
 
-Why:
-- Common for debugging payload integrity and quick verification tasks.
-- Easy to keep fully client-side.
+### 0) 공통 진행 프로세스
 
-Suggested scope:
-- MD5
-- SHA-1
-- SHA-256
-- SHA-512
-- Text input
-- Copy digest output
+1. `main` 최신화
+2. 기능별 Issue 생성 (`type: feature`)
+3. 기능별 브랜치 생성 (`feature/<issue-number>-<slug>`)
+4. 구현 + 자체 테스트
+5. PR 생성 (Issue 연결)
+6. 코드리뷰 반영 후 `main` 병합
 
-Implementation note:
-- Use the browser Web Crypto API where possible.
+권장 브랜치 네이밍:
 
-#### 2. SQL Formatter
+- `feature/101-hash-generator`
+- `feature/102-diff-checker`
+- `feature/103-cron-builder-parser`
 
-Why:
-- Frequently needed during API and database debugging.
-- Strong fit with the existing JSON and text tooling.
+권장 커밋 규칙(Conventional Commits):
 
-Suggested scope:
-- Paste SQL and format output
-- Minify or compact mode
-- Copy formatted result
+- `feat(hash): add sha-256 and sha-512 generation`
+- `feat(diff): implement line and char diff view`
+- `feat(cron): add parser and preset builder`
 
-Implementation note:
-- Likely best added with a lightweight formatter dependency.
+---
 
-#### 3. Diff Checker
+### 1) Hash Generator
 
-Why:
-- Very common debugging workflow for payloads, configs, and generated text.
-- Good complement to JSON and Base64 tools.
+#### 1-1. Issue 템플릿(예시)
 
-Suggested scope:
-- Side-by-side or inline diff
-- Character and line-level diff
-- Copy left/right content
-- Sample input
+제목:
+`[Feature] Hash Generator 도구 추가`
 
-Implementation note:
-- Keep the first version text-only.
+본문 체크리스트:
 
-#### 4. Cron Expression Builder / Parser
+- [ ] 지원 알고리즘: MD5, SHA-1, SHA-256, SHA-512
+- [ ] 입력 방식: 텍스트 입력(멀티라인 포함)
+- [ ] 출력: 선택 알고리즘 해시값 표시 + 복사 버튼
+- [ ] 에러 상태/빈 입력 상태 UI 정의
+- [ ] 성능 기준: 일반 텍스트 입력 시 즉시 반응
+- [ ] 단위 테스트(가능 범위) 및 수동 테스트 시나리오 작성
 
-Why:
-- Useful for backend and automation workflows.
-- High practical value for developers.
+수용 기준(AC):
 
-Suggested scope:
-- Parse cron expression
-- Human-readable explanation
-- Common presets
-- Validation feedback
+- 알고리즘 변경 시 출력이 즉시 갱신된다.
+- 복사 버튼 클릭 시 해시값이 클립보드로 복사된다.
+- 잘 알려진 테스트 벡터(`abc`) 결과가 정확히 일치한다.
 
-Implementation note:
-- Start with standard 5-field cron support before adding variants.
+#### 1-2. 브랜치
 
-### Tier 2: Strong SEO and workflow additions
+- `feature/<issue-number>-hash-generator`
 
-#### 5. JSON to TypeScript
+#### 1-3. 구현 메모
 
-Why:
-- Natural extension of the JSON tool.
-- Useful for frontend and API integration work.
+- Web Crypto API 우선 사용
+- MD5는 Web Crypto API 미지원이므로 경량 라이브러리 도입 또는 순수 JS 구현 검토
+- 기존 UI 패턴(입력/출력/Copy CTA) 재사용
 
-Suggested scope:
-- Paste JSON
-- Generate TypeScript types or interfaces
-- Copy output
+#### 1-4. 완료 정의(DoD)
 
-#### 6. cURL to fetch Converter
+- 툴 목록 및 라우팅에 Hash Generator 노출
+- README 도구 목록 업데이트
+- PR에 테스트 결과 첨부
 
-Why:
-- Very useful for frontend and API debugging.
-- Strong direct-use value.
+---
 
-Suggested scope:
-- Paste cURL command
-- Output `fetch` code
-- Optional `axios` output later
+### 2) Diff Checker
 
-#### 7. JSON to Zod / JSON Schema
+#### 2-1. Issue 템플릿(예시)
 
-Why:
-- Good fit for modern TypeScript-heavy workflows.
-- Strong value for validation-driven development.
+제목:
+`[Feature] Diff Checker 도구 추가`
 
-Suggested scope:
-- Paste JSON
-- Generate schema
-- Copy output
+본문 체크리스트:
 
-### Tier 3: Utility expansion
+- [ ] 좌/우 텍스트 입력 영역 제공
+- [ ] 라인 단위 diff 표시
+- [ ] 문자 단위 강조(라인 내 변경점)
+- [ ] 출력 모드: inline 또는 split view(최소 1개 모드 필수)
+- [ ] 샘플 데이터 로드 버튼
+- [ ] 복사 동작(좌/우 원문 또는 결과 중 우선순위 정의)
 
-#### 8. HTML / CSS / JS Minifier
-#### 9. Color Converter
-#### 10. Text Case Converter
-#### 11. Query String Parser
-#### 12. HTTP Status Code Reference
+수용 기준(AC):
 
-These are useful, but they are lower priority than the debugging and data-conversion tools above.
+- 두 입력이 동일하면 “차이 없음” 상태가 명확히 표시된다.
+- 공백/개행 차이가 UI에서 구분 가능하다.
+- 1,000줄 내외 텍스트 비교 시 브라우저가 멈추지 않는다.
 
-## Suggested Next Implementation Order
+#### 2-2. 브랜치
 
-If development continues from the current codebase, this is the recommended order:
+- `feature/<issue-number>-diff-checker`
 
-1. Hash Generator
-2. SQL Formatter
-3. Diff Checker
-4. Cron Expression Builder / Parser
-5. JSON to TypeScript
-6. cURL to fetch Converter
-7. JSON to Zod / JSON Schema
+#### 2-3. 구현 메모
 
+- 초기 버전은 text diff에 집중(JSON 전용 diff는 후속 이슈)
+- 경량 diff 라이브러리 사용 가능
+- 렌더링 비용 절감을 위해 큰 입력에서는 계산 디바운스 적용
+
+#### 2-4. 완료 정의(DoD)
+
+- 툴 목록/라우팅 반영
+- 접근성(키보드 포커스, 대비) 기본 점검
+- PR에 대용량 입력 테스트 결과 포함
+
+---
+
+### 3) Cron Expression Builder / Parser
+
+#### 3-1. Issue 템플릿(예시)
+
+제목:
+`[Feature] Cron Expression Builder/Parser 도구 추가`
+
+본문 체크리스트:
+
+- [ ] 표준 5필드 cron(`min hour day month weekday`) 우선 지원
+- [ ] 식 입력 시 파싱 + human-readable 설명 제공
+- [ ] Builder UI(필드별 선택) 제공
+- [ ] 프리셋 제공(@hourly 성격의 프리셋은 5필드 식으로 매핑)
+- [ ] 유효성 검사 및 에러 메시지 정의
+- [ ] 파싱 결과/생성 결과 복사 기능
+
+수용 기준(AC):
+
+- 유효한 cron 식 입력 시 자연어 설명이 표시된다.
+- Builder 변경 시 cron 문자열이 즉시 갱신된다.
+- 잘못된 값(예: 분 60) 입력 시 필드 단위 에러가 표시된다.
+
+#### 3-2. 브랜치
+
+- `feature/<issue-number>-cron-builder-parser`
+
+#### 3-3. 구현 메모
+
+- v1은 5필드만 지원, Quartz(초/년 포함)는 후속 이슈 분리
+- 로케일은 우선 영어 설명으로 시작 후 다국어 확장 가능 구조 고려
+- 프리셋 예시: 매분, 매시 정각, 매일 00:00, 주중 09:00
+
+#### 3-4. 완료 정의(DoD)
+
+- Parser와 Builder 상호 동기화 동작 확인
+- 예외 케이스(범위/step/list) 테스트
+- README 도구 및 사용 예시 업데이트
+
+---
+
+### Issue/PR 운영 규칙
+
+- Issue 라벨 권장: `feature`, `frontend`, `tooling`
+- PR 제목 규칙: `[<tool>] #<issue-number> <short-description>`
+- PR 본문에 반드시 포함:
+  - 구현 범위(In scope / Out of scope)
+  - UI 변경 스크린샷(가능 시)
+  - 테스트 결과
+  - Close 키워드(`Closes #<issue-number>`)
+
+---
+
+### 실행 순서 제안 (2주 스프린트 예시)
+
+- Day 1: Issue 3건 생성 + 명세 확정
+- Day 2~4: Hash Generator 개발/리뷰/병합
+- Day 5~8: Diff Checker 개발/리뷰/병합
+- Day 9~12: Cron Builder/Parser 개발/리뷰/병합
+- Day 13~14: 통합 QA 및 문서 보강
 ## Future UX Improvements
 
 - Remember the last selected tool on the home page
