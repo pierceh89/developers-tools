@@ -227,6 +227,8 @@ const tools: Record<ToolSlug, ToolDefinition> = {
 };
 
 const toolOrder = Object.values(tools);
+const baseUrl = withTrailingSlash(import.meta.env.BASE_URL);
+const basePathWithoutTrailingSlash = baseUrl.replace(/\/$/, '');
 
 export function renderApp(app: HTMLDivElement, pathname: string): void {
   const normalized = normalizePath(pathname);
@@ -248,11 +250,19 @@ export function renderApp(app: HTMLDivElement, pathname: string): void {
 }
 
 function normalizePath(pathname: string): string {
-  if (pathname === '/') {
-    return pathname;
+  let trimmed = pathname;
+
+  if (pathname === basePathWithoutTrailingSlash) {
+    trimmed = '/';
+  } else if (pathname.startsWith(baseUrl)) {
+    trimmed = pathname.slice(baseUrl.length - 1);
   }
 
-  return pathname.endsWith('/') ? pathname : `${pathname}/`;
+  if (trimmed === '' || trimmed === '/') {
+    return '/';
+  }
+
+  return trimmed.endsWith('/') ? trimmed : `${trimmed}/`;
 }
 
 function renderHome(app: HTMLDivElement): void {
@@ -278,7 +288,7 @@ function renderHome(app: HTMLDivElement): void {
             <div class="home-toolbar-meta">
               <strong data-home-title>${featuredTool.label}</strong>
               <span data-home-description>${featuredTool.description}</span>
-              <a class="button button-primary" data-home-link href="/${featuredTool.slug}/">Open page</a>
+              <a class="button button-primary" data-home-link href="${routeForTool(featuredTool.slug)}">Open page</a>
             </div>
           </div>
           <div class="tool-frame tool-frame-home" data-home-tool-root></div>
@@ -304,7 +314,7 @@ function renderHome(app: HTMLDivElement): void {
     const tool = tools[activeTool];
     title.textContent = tool.label;
     description.textContent = tool.summary;
-    link.href = `/${tool.slug}/`;
+    link.href = routeForTool(tool.slug);
     switches.forEach((button) => {
       button.classList.toggle('is-active', button.dataset.homeTool === activeTool);
     });
@@ -355,7 +365,7 @@ function renderToolPage(app: HTMLDivElement, tool: ToolDefinition): void {
               ${tool.related
                 .map((slug) => {
                   const related = tools[slug];
-                  return `<a class="related-link" href="/${related.slug}/">${related.label}</a>`;
+                  return `<a class="related-link" href="${routeForTool(related.slug)}">${related.label}</a>`;
                 })
                 .join('')}
             </div>
@@ -386,7 +396,7 @@ function renderNotFound(app: HTMLDivElement): void {
             <h1>This page is not part of the tools hub.</h1>
             <p class="hero-lede">Use the home page to jump into one of the developer utilities.</p>
             <div class="hero-actions">
-              <a class="button button-primary" href="/">Back Home</a>
+              <a class="button button-primary" href="${routeForHome()}">Back Home</a>
             </div>
           </div>
         </section>
@@ -399,7 +409,7 @@ function renderNotFound(app: HTMLDivElement): void {
 function renderHomeHeader(): string {
   return `
     <header class="site-header site-header-minimal">
-      <a class="brand" href="/">
+      <a class="brand" href="${routeForHome()}">
         <span class="brand-mark">DT</span>
         <span class="brand-copy">
           <strong>Developer Tools</strong>
@@ -413,7 +423,7 @@ function renderHomeHeader(): string {
 function renderSiteHeader(active?: ToolSlug): string {
   return `
     <header class="site-header">
-      <a class="brand" href="/">
+      <a class="brand" href="${routeForHome()}">
         <span class="brand-mark">DT</span>
         <span class="brand-copy">
           <strong>Developer Tools</strong>
@@ -421,11 +431,11 @@ function renderSiteHeader(active?: ToolSlug): string {
         </span>
       </a>
       <nav class="main-nav" aria-label="Primary">
-        <a href="/">Home</a>
+        <a href="${routeForHome()}">Home</a>
         ${toolOrder
           .map(
             (tool) =>
-              `<a class="${active === tool.slug ? 'is-active' : ''}" href="/${tool.slug}/">${tool.label}</a>`,
+              `<a class="${active === tool.slug ? 'is-active' : ''}" href="${routeForTool(tool.slug)}">${tool.label}</a>`,
           )
           .join('')}
       </nav>
@@ -446,6 +456,18 @@ function renderFooter(): string {
       </div>
     </footer>
   `;
+}
+
+function routeForHome(): string {
+  return baseUrl;
+}
+
+function routeForTool(slug: ToolSlug): string {
+  return `${baseUrl}${slug}/`;
+}
+
+function withTrailingSlash(value: string): string {
+  return value.endsWith('/') ? value : `${value}/`;
 }
 
 function mountToolInto(root: HTMLElement, slug: ToolSlug): void {
