@@ -1,4 +1,5 @@
 type ToolSlug =
+  | 'hash-generator'
   | 'json-formatter'
   | 'jwt-decoder'
   | 'base64-encode-decode'
@@ -21,6 +22,35 @@ type ToolDefinition = {
 };
 
 const tools: Record<ToolSlug, ToolDefinition> = {
+  'hash-generator': {
+    slug: 'hash-generator',
+    label: 'Hash Generator',
+    title: 'Hash Generator',
+    eyebrow: 'Integrity checks',
+    description: 'Generate MD5, SHA-1, SHA-256, and SHA-512 hashes in your browser.',
+    summary:
+      'Paste text and switch algorithms to instantly calculate deterministic hash outputs without sending input to a server.',
+    details: [
+      'Supports MD5, SHA-1, SHA-256, and SHA-512.',
+      'Updates hash output immediately when input or algorithm changes.',
+      'Includes copy action and known-vector example testing.',
+    ],
+    faq: [
+      {
+        question: 'Which hash algorithms are available?',
+        answer: 'MD5, SHA-1, SHA-256, and SHA-512 are available.',
+      },
+      {
+        question: 'Does hashing happen on a backend server?',
+        answer: 'No. Hash computation runs locally in your browser.',
+      },
+      {
+        question: 'Can I verify known hash vectors quickly?',
+        answer: 'Yes. Use the example button to load `abc` and compare expected results.',
+      },
+    ],
+    related: ['json-formatter', 'base64-encode-decode', 'regex-tester'],
+  },
   'json-formatter': {
     slug: 'json-formatter',
     label: 'JSON Formatter',
@@ -266,7 +296,7 @@ function normalizePath(pathname: string): string {
 }
 
 function renderHome(app: HTMLDivElement): void {
-  const featuredTool = tools['json-formatter'];
+  const featuredTool = tools['hash-generator'];
   app.innerHTML = `
     <div class="page-shell">
       ${renderHomeHeader()}
@@ -474,6 +504,7 @@ function mountToolInto(root: HTMLElement, slug: ToolSlug): void {
   root.innerHTML = '';
 
   const renderers: Record<ToolSlug, (element: HTMLElement) => void> = {
+    'hash-generator': mountHashGenerator,
     'json-formatter': mountJsonFormatter,
     'jwt-decoder': mountJwtDecoder,
     'base64-encode-decode': mountBase64Tool,
@@ -493,6 +524,96 @@ function renderFaqItem(item: { question: string; answer: string }): string {
       <p>${item.answer}</p>
     </article>
   `;
+}
+
+function mountHashGenerator(root: HTMLElement): void {
+  root.innerHTML = `
+    <div class="tool-layout">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Input text</h2>
+          <div class="panel-actions">
+            <button class="button button-ghost" data-example>Example</button>
+            <button class="button button-ghost" data-clear>Reset</button>
+          </div>
+        </div>
+        <label class="field">
+          <span>Algorithm</span>
+          <select class="select" data-algorithm>
+            <option value="md5">MD5</option>
+            <option value="sha-1">SHA-1</option>
+            <option value="sha-256" selected>SHA-256</option>
+            <option value="sha-512">SHA-512</option>
+          </select>
+        </label>
+        <textarea class="input-area" data-input spellcheck="false" placeholder="Enter text to hash"></textarea>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Hash output</h2>
+          <button class="button button-ghost" data-copy>Copy Hash</button>
+        </div>
+        <p class="status-message" data-status>Enter text to generate a hash.</p>
+        <textarea class="output-box" data-output readonly></textarea>
+        <p class="notice">Known test vector for <code>abc</code> is available with the Example button.</p>
+      </section>
+    </div>
+  `;
+
+  const input = getElement<HTMLTextAreaElement>(root, '[data-input]');
+  const algorithm = getElement<HTMLSelectElement>(root, '[data-algorithm]');
+  const output = getElement<HTMLTextAreaElement>(root, '[data-output]');
+  const status = getElement<HTMLElement>(root, '[data-status]');
+  const copyButton = getElement<HTMLButtonElement>(root, '[data-copy]');
+  let syncToken = 0;
+
+  const sync = async (): Promise<void> => {
+    const token = ++syncToken;
+    const text = input.value;
+
+    if (!text) {
+      output.value = '';
+      status.textContent = 'Enter text to generate a hash.';
+      status.className = 'status-message';
+      return;
+    }
+
+    try {
+      const hashValue = await digestText(text, algorithm.value as HashAlgorithm);
+      if (token !== syncToken) {
+        return;
+      }
+      output.value = hashValue;
+      status.textContent = `${algorithm.value.toUpperCase()} hash generated successfully.`;
+      status.className = 'status-message status-success';
+    } catch (error) {
+      if (token !== syncToken) {
+        return;
+      }
+      output.value = '';
+      status.textContent = error instanceof Error ? error.message : 'Unable to generate hash.';
+      status.className = 'status-message status-error';
+    }
+  };
+
+  input.addEventListener('input', () => {
+    void sync();
+  });
+  algorithm.addEventListener('change', () => {
+    void sync();
+  });
+  getElement<HTMLButtonElement>(root, '[data-example]').addEventListener('click', () => {
+    input.value = 'abc';
+    void sync();
+  });
+  getElement<HTMLButtonElement>(root, '[data-clear]').addEventListener('click', () => {
+    input.value = '';
+    output.value = '';
+    void sync();
+  });
+  copyButton.addEventListener('click', async () => {
+    await copyText(output.value, copyButton);
+  });
 }
 
 function mountJsonFormatter(root: HTMLElement): void {
@@ -1272,6 +1393,23 @@ async function copyText(value: string, trigger: HTMLButtonElement): Promise<void
   }, 1200);
 }
 
+type HashAlgorithm = 'md5' | 'sha-1' | 'sha-256' | 'sha-512';
+
+async function digestText(value: string, algorithm: HashAlgorithm): Promise<string> {
+  if (algorithm === 'md5') {
+    return md5(value);
+  }
+
+  const subtleAlgorithm = algorithm.toUpperCase();
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest(subtleAlgorithm, bytes);
+  return bytesToHex(new Uint8Array(digest));
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
 function utf8ToBase64(value: string): string {
   const bytes = new TextEncoder().encode(value);
   let binary = '';
@@ -1380,4 +1518,91 @@ function escapeHtml(value: string): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function md5(input: string): string {
+  const rotateLeft = (value: number, amount: number): number =>
+    ((value << amount) | (value >>> (32 - amount))) >>> 0;
+  const add = (a: number, b: number): number => ((a >>> 0) + (b >>> 0)) >>> 0;
+
+  const f = (x: number, y: number, z: number): number => (x & y) | (~x & z);
+  const g = (x: number, y: number, z: number): number => (x & z) | (y & ~z);
+  const h = (x: number, y: number, z: number): number => x ^ y ^ z;
+  const i = (x: number, y: number, z: number): number => y ^ (x | ~z);
+
+  const text = new TextEncoder().encode(input);
+  const bitLength = text.length * 8;
+  const withPaddingLength = (((text.length + 8) >>> 6) + 1) * 64;
+  const bytes = new Uint8Array(withPaddingLength);
+  bytes.set(text);
+  bytes[text.length] = 0x80;
+
+  const bitLengthLow = bitLength >>> 0;
+  const bitLengthHigh = Math.floor(bitLength / 0x100000000);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(withPaddingLength - 8, bitLengthLow, true);
+  view.setUint32(withPaddingLength - 4, bitLengthHigh, true);
+
+  let a0 = 0x67452301;
+  let b0 = 0xefcdab89;
+  let c0 = 0x98badcfe;
+  let d0 = 0x10325476;
+
+  const s = [
+    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9,
+    14, 20, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10,
+    15, 21, 6, 10, 15, 21,
+  ];
+  const k = Array.from({ length: 64 }, (_, index) => Math.floor(Math.abs(Math.sin(index + 1)) * 2 ** 32) >>> 0);
+
+  for (let offset = 0; offset < bytes.length; offset += 64) {
+    const chunk = new Uint32Array(16);
+    for (let index = 0; index < 16; index += 1) {
+      chunk[index] = view.getUint32(offset + index * 4, true);
+    }
+
+    let a = a0;
+    let b = b0;
+    let c = c0;
+    let d = d0;
+
+    for (let index = 0; index < 64; index += 1) {
+      let mix: number;
+      let blockIndex: number;
+
+      if (index < 16) {
+        mix = f(b, c, d);
+        blockIndex = index;
+      } else if (index < 32) {
+        mix = g(b, c, d);
+        blockIndex = (5 * index + 1) % 16;
+      } else if (index < 48) {
+        mix = h(b, c, d);
+        blockIndex = (3 * index + 5) % 16;
+      } else {
+        mix = i(b, c, d);
+        blockIndex = (7 * index) % 16;
+      }
+
+      const next = d;
+      d = c;
+      c = b;
+      const sum = add(add(a, mix), add(k[index], chunk[blockIndex]));
+      b = add(b, rotateLeft(sum, s[index]));
+      a = next;
+    }
+
+    a0 = add(a0, a);
+    b0 = add(b0, b);
+    c0 = add(c0, c);
+    d0 = add(d0, d);
+  }
+
+  const output = new Uint8Array(16);
+  const outputView = new DataView(output.buffer);
+  outputView.setUint32(0, a0, true);
+  outputView.setUint32(4, b0, true);
+  outputView.setUint32(8, c0, true);
+  outputView.setUint32(12, d0, true);
+  return bytesToHex(output);
 }

@@ -10,6 +10,7 @@ This project is a static multi-page Vite app built with client-side TypeScript a
 ## Current Tools
 
 - JSON Formatter / Validator
+- Hash Generator
 - JWT Decoder
 - Base64 Encode / Decode
 - UUID / ULID Generator
@@ -70,6 +71,7 @@ npm run preview
 .
 ├── .github/workflows/deploy-pages.yml
 ├── index.html
+├── hash-generator/index.html
 ├── json-formatter/index.html
 ├── jwt-decoder/index.html
 ├── base64-encode-decode/index.html
