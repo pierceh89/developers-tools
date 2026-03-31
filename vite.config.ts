@@ -13,6 +13,7 @@ export default defineConfig({
         urlEncode: 'url-encode-decode/index.html',
         timestamp: 'unix-timestamp-converter/index.html',
         regex: 'regex-tester/index.html',
+        diffChecker: 'diff-checker/index.html',
       },
     },
   },

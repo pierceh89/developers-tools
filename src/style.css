@@ -533,9 +533,66 @@ h3 {
 
 .claim-list,
 .generated-list,
-.match-list {
+.match-list,
+.diff-result {
   display: grid;
   gap: 0.8rem;
+}
+
+.diff-input-grid,
+.diff-row {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.diff-input {
+  min-height: 14rem;
+}
+
+.diff-result {
+  border: 1px solid rgba(31, 36, 48, 0.12);
+  border-radius: 1.1rem;
+  padding: 0.8rem;
+  background: #fffdf7;
+  max-height: 30rem;
+  overflow: auto;
+}
+
+.diff-cell {
+  border-radius: 0.8rem;
+  border: 1px solid rgba(31, 36, 48, 0.08);
+  padding: 0.65rem 0.75rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-cell-empty {
+  color: #8a93a0;
+  font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+}
+
+.diff-cell-delete {
+  background: #fff0ee;
+  border-color: rgba(177, 62, 45, 0.2);
+}
+
+.diff-cell-insert {
+  background: #ebfbf4;
+  border-color: rgba(19, 115, 80, 0.2);
+}
+
+.diff-char-delete {
+  background: rgba(177, 62, 45, 0.24);
+}
+
+.diff-char-insert {
+  background: rgba(19, 115, 80, 0.26);
+}
+
+.ws-marker {
+  color: #8a93a0;
 }
 
 .claim-list div,
@@ -608,6 +665,11 @@ h3 {
   .hero,
   .section-columns,
   .tool-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .diff-input-grid,
+  .diff-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
