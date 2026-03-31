@@ -16,6 +16,7 @@ This project is a static multi-page Vite app built with client-side TypeScript a
 - URL Encode / Decode
 - Unix Timestamp Converter
 - Regex Tester
+- Cron Expression Builder / Parser
 
 ## Product Direction
 
@@ -77,6 +78,7 @@ npm run preview
 ├── url-encode-decode/index.html
 ├── unix-timestamp-converter/index.html
 ├── regex-tester/index.html
+├── cron-expression-builder-parser/index.html
 ├── src/
 │   ├── app.ts
 │   ├── main.ts
@@ -90,6 +92,12 @@ Notes:
 - `src/app.ts` contains routing, shared layout rendering, and tool implementations.
 - `vite.config.ts` uses the GitHub Pages base path: `/developers-tools/`.
 - Each tool has its own HTML entrypoint for static output and direct page access.
+
+### Cron Expression Builder / Parser usage examples
+
+- `*/15 9-17 * * 1-5` → every 15 minutes during 09:00~17:59 on weekdays
+- `0 0 * * *` → every day at 00:00
+- `0 * * * *` → top of every hour
 
 ## Deployment
 
