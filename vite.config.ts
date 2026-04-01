@@ -6,6 +6,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         home: 'index.html',
+        hashGenerator: 'hash-generator/index.html',
         jsonFormatter: 'json-formatter/index.html',
         jwtDecoder: 'jwt-decoder/index.html',
         base64: 'base64-encode-decode/index.html',
