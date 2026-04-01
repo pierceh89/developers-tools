@@ -17,6 +17,7 @@ This project is a static multi-page Vite app built with client-side TypeScript a
 - URL Encode / Decode
 - Unix Timestamp Converter
 - Regex Tester
+- Diff Checker
 
 ## Product Direction
 
@@ -79,6 +80,7 @@ npm run preview
 ├── url-encode-decode/index.html
 ├── unix-timestamp-converter/index.html
 ├── regex-tester/index.html
+├── diff-checker/index.html
 ├── src/
 │   ├── app.ts
 │   ├── main.ts
