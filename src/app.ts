@@ -63,10 +63,27 @@ function renderHome(app: HTMLDivElement): void {
             <div class="home-toolbar-meta">
               <strong data-home-title>${featuredTool.label}</strong>
               <span data-home-description>${featuredTool.description}</span>
-              <a class="button button-primary" data-home-link href="${routeForTool(featuredTool.slug)}">Open page</a>
+              <a class="button button-primary" data-home-link href="${routeForTool(featuredTool.slug)}">Open ${featuredTool.label}</a>
             </div>
           </div>
           <div class="tool-frame tool-frame-home" data-home-tool-root></div>
+        </section>
+        <section class="section section-columns">
+          <div>
+            <p class="eyebrow">Browse all tools</p>
+            <h2>Direct links for everyday workflows</h2>
+            <p class="section-copy">
+              Open each utility directly when you need to format payloads, inspect tokens, compare text, or debug browser-safe encodings.
+            </p>
+          </div>
+          <aside class="related-card">
+            <p class="panel-kicker">All tool pages</p>
+            <div class="related-links">
+              ${toolOrder
+                .map((tool) => `<a class="related-link" href="${routeForTool(tool.slug)}">${tool.title}</a>`)
+                .join('')}
+            </div>
+          </aside>
         </section>
       </main>
       ${renderFooter()}
@@ -90,6 +107,7 @@ function renderHome(app: HTMLDivElement): void {
     title.textContent = tool.label;
     description.textContent = tool.summary;
     link.href = routeForTool(tool.slug);
+    link.textContent = `Open ${tool.label}`;
     switches.forEach((button) => {
       button.classList.toggle('is-active', button.dataset.homeTool === activeTool);
     });
@@ -115,6 +133,11 @@ function renderToolPage(app: HTMLDivElement, tool: ToolDefinition): void {
     <div class="page-shell ${tool.bodyClass ?? ''}">
       ${renderSiteHeader(tool.slug)}
       <main class="page">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a href="${routeForHome()}">Developer Tools</a>
+          <span>/</span>
+          <span aria-current="page">${tool.title}</span>
+        </nav>
         <section class="tool-intro">
           <p class="eyebrow">${tool.eyebrow}</p>
           <h1>${tool.title}</h1>
@@ -128,14 +151,37 @@ function renderToolPage(app: HTMLDivElement, tool: ToolDefinition): void {
         </section>
         <section class="section section-columns">
           <div>
+            <p class="eyebrow">Use cases</p>
+            <h2>Where this tool helps most</h2>
+            <div class="detail-list">
+              ${tool.details.map((detail) => `<p class="detail-item">${detail}</p>`).join('')}
+            </div>
+          </div>
+          <aside class="related-card">
+            <p class="panel-kicker">Related tools</p>
+            <div class="related-links">
+              ${tool.related
+                .map((slug) => {
+                  const related = tools[slug];
+                  return `<a class="related-link" href="${routeForTool(related.slug)}">${related.label}</a>`;
+                })
+                .join('')}
+            </div>
+          </aside>
+        </section>
+        <section class="section section-columns">
+          <div>
             <p class="eyebrow">FAQ</p>
-            <h2>What developers usually ask</h2>
+            <h2>Questions developers search for</h2>
             <div class="faq-list">
               ${tool.faq.map(renderFaqItem).join('')}
             </div>
           </div>
           <aside class="related-card">
-            <p class="panel-kicker">Related tools</p>
+            <p class="panel-kicker">Explore more</p>
+            <p class="section-copy">
+              Move between encoding, inspection, formatting, and comparison tools without leaving the browser.
+            </p>
             <div class="related-links">
               ${tool.related
                 .map((slug) => {

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pierceh89.github.io/developers-tools/sitemap.xml

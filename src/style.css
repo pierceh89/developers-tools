@@ -48,7 +48,9 @@ button {
 .hero,
 .tool-hero,
 .section-columns,
-.tool-layout {
+.tool-layout,
+.breadcrumb,
+.detail-list {
   display: grid;
   gap: 1.5rem;
 }
@@ -142,6 +144,20 @@ button {
   gap: 2rem;
 }
 
+.breadcrumb {
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+  font-size: 0.92rem;
+  color: #6a7280;
+}
+
+.breadcrumb a {
+  color: #a85b1b;
+}
+
 .page-home {
   gap: 1.25rem;
 }
@@ -231,6 +247,20 @@ h3 {
   font-family: "Trebuchet MS", "Gill Sans", sans-serif;
   font-size: 1.05rem;
   line-height: 1.75;
+  color: #505866;
+}
+
+.detail-list {
+  gap: 0.9rem;
+}
+
+.detail-item {
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(31, 36, 48, 0.09);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.78);
+  font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+  line-height: 1.65;
   color: #505866;
 }
 

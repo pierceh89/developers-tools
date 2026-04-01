@@ -3,12 +3,62 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>JWT Decoder</title>
+    <title>JWT Decoder | Developer Tools</title>
     <meta
       name="description"
       content="Inspect JWT headers and claims instantly without sending tokens to a server."
     />
     <link rel="canonical" href="https://pierceh89.github.io/developers-tools/jwt-decoder/" />
+    <meta property="og:title" content="JWT Decoder | Developer Tools" />
+    <meta property="og:description" content="Inspect JWT headers and claims instantly without sending tokens to a server." />
+    <meta property="og:url" content="https://pierceh89.github.io/developers-tools/jwt-decoder/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Developer Tools" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="JWT Decoder | Developer Tools" />
+    <meta name="twitter:description" content="Inspect JWT headers and claims instantly without sending tokens to a server." />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "JWT Decoder",
+            "url": "https://pierceh89.github.io/developers-tools/jwt-decoder/",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Any",
+            "description": "Inspect JWT headers and claims instantly without sending tokens to a server."
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Does this verify a JWT signature?",
+                "acceptedAnswer": { "@type": "Answer", "text": "No. This page is for decoding and inspection only." }
+              },
+              {
+                "@type": "Question",
+                "name": "Are claims like exp shown as dates?",
+                "acceptedAnswer": { "@type": "Answer", "text": "Yes. Numeric time claims are rendered as human-readable timestamps." }
+              },
+              {
+                "@type": "Question",
+                "name": "Is my token uploaded?",
+                "acceptedAnswer": { "@type": "Answer", "text": "No. Decoding happens locally in your browser." }
+              }
+            ]
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Developer Tools", "item": "https://pierceh89.github.io/developers-tools/" },
+              { "@type": "ListItem", "position": 2, "name": "JWT Decoder", "item": "https://pierceh89.github.io/developers-tools/jwt-decoder/" }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
