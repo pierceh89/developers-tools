@@ -1,4 +1,5 @@
 type ToolSlug =
+  | 'hash-generator'
   | 'json-formatter'
   | 'jwt-decoder'
   | 'base64-encode-decode'
@@ -7,6 +8,7 @@ type ToolSlug =
   | 'unix-timestamp-converter'
   | 'regex-tester'
   | 'cron-expression-builder-parser';
+  | 'diff-checker';
 
 type ToolDefinition = {
   slug: ToolSlug;
@@ -22,6 +24,35 @@ type ToolDefinition = {
 };
 
 const tools: Record<ToolSlug, ToolDefinition> = {
+  'hash-generator': {
+    slug: 'hash-generator',
+    label: 'Hash Generator',
+    title: 'Hash Generator',
+    eyebrow: 'Integrity checks',
+    description: 'Generate MD5, SHA-1, SHA-256, and SHA-512 hashes in your browser.',
+    summary:
+      'Paste text and switch algorithms to instantly calculate deterministic hash outputs without sending input to a server.',
+    details: [
+      'Supports MD5, SHA-1, SHA-256, and SHA-512.',
+      'Updates hash output immediately when input or algorithm changes.',
+      'Includes copy action and known-vector example testing.',
+    ],
+    faq: [
+      {
+        question: 'Which hash algorithms are available?',
+        answer: 'MD5, SHA-1, SHA-256, and SHA-512 are available.',
+      },
+      {
+        question: 'Does hashing happen on a backend server?',
+        answer: 'No. Hash computation runs locally in your browser.',
+      },
+      {
+        question: 'Can I verify known hash vectors quickly?',
+        answer: 'Yes. Use the example button to load `abc` and compare expected results.',
+      },
+    ],
+    related: ['json-formatter', 'base64-encode-decode', 'regex-tester'],
+  },
   'json-formatter': {
     slug: 'json-formatter',
     label: 'JSON Formatter',
@@ -253,6 +284,34 @@ const tools: Record<ToolSlug, ToolDefinition> = {
       },
     ],
     related: ['regex-tester', 'unix-timestamp-converter', 'json-formatter'],
+  'diff-checker': {
+    slug: 'diff-checker',
+    label: 'Diff Checker',
+    title: 'Text Diff Checker',
+    eyebrow: 'Change inspection',
+    description: 'Compare two text blocks with line and character highlights.',
+    summary:
+      'Find additions, deletions, and inline edits quickly with a split-style diff view that runs in your browser.',
+    details: [
+      'Compares text at line level for a readable change overview.',
+      'Highlights character-level changes for edited lines.',
+      'Includes debounce for larger inputs to keep typing responsive.',
+    ],
+    faq: [
+      {
+        question: 'What happens when both inputs are identical?',
+        answer: 'The result shows a clear "No differences found" state.',
+      },
+      {
+        question: 'Can I spot whitespace-only changes?',
+        answer: 'Yes. Spaces are shown as · and tabs are shown as → in the diff output.',
+      },
+      {
+        question: 'Is this a Git diff?',
+        answer: 'No. It is a text comparison utility focused on quick browser-based inspection.',
+      },
+    ],
+    related: ['json-formatter', 'regex-tester', 'base64-encode-decode'],
   },
 };
 
@@ -296,7 +355,7 @@ function normalizePath(pathname: string): string {
 }
 
 function renderHome(app: HTMLDivElement): void {
-  const featuredTool = tools['json-formatter'];
+  const featuredTool = tools['hash-generator'];
   app.innerHTML = `
     <div class="page-shell">
       ${renderHomeHeader()}
@@ -504,6 +563,7 @@ function mountToolInto(root: HTMLElement, slug: ToolSlug): void {
   root.innerHTML = '';
 
   const renderers: Record<ToolSlug, (element: HTMLElement) => void> = {
+    'hash-generator': mountHashGenerator,
     'json-formatter': mountJsonFormatter,
     'jwt-decoder': mountJwtDecoder,
     'base64-encode-decode': mountBase64Tool,
@@ -512,6 +572,7 @@ function mountToolInto(root: HTMLElement, slug: ToolSlug): void {
     'unix-timestamp-converter': mountTimestampTool,
     'regex-tester': mountRegexTester,
     'cron-expression-builder-parser': mountCronTool,
+    'diff-checker': mountDiffChecker,
   };
 
   renderers[slug](root);
@@ -524,6 +585,96 @@ function renderFaqItem(item: { question: string; answer: string }): string {
       <p>${item.answer}</p>
     </article>
   `;
+}
+
+function mountHashGenerator(root: HTMLElement): void {
+  root.innerHTML = `
+    <div class="tool-layout">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Input text</h2>
+          <div class="panel-actions">
+            <button class="button button-ghost" data-example>Example</button>
+            <button class="button button-ghost" data-clear>Reset</button>
+          </div>
+        </div>
+        <label class="field">
+          <span>Algorithm</span>
+          <select class="select" data-algorithm>
+            <option value="md5">MD5</option>
+            <option value="sha-1">SHA-1</option>
+            <option value="sha-256" selected>SHA-256</option>
+            <option value="sha-512">SHA-512</option>
+          </select>
+        </label>
+        <textarea class="input-area" data-input spellcheck="false" placeholder="Enter text to hash"></textarea>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Hash output</h2>
+          <button class="button button-ghost" data-copy>Copy Hash</button>
+        </div>
+        <p class="status-message" data-status>Enter text to generate a hash.</p>
+        <textarea class="output-box" data-output readonly></textarea>
+        <p class="notice">Known test vector for <code>abc</code> is available with the Example button.</p>
+      </section>
+    </div>
+  `;
+
+  const input = getElement<HTMLTextAreaElement>(root, '[data-input]');
+  const algorithm = getElement<HTMLSelectElement>(root, '[data-algorithm]');
+  const output = getElement<HTMLTextAreaElement>(root, '[data-output]');
+  const status = getElement<HTMLElement>(root, '[data-status]');
+  const copyButton = getElement<HTMLButtonElement>(root, '[data-copy]');
+  let syncToken = 0;
+
+  const sync = async (): Promise<void> => {
+    const token = ++syncToken;
+    const text = input.value;
+
+    if (!text) {
+      output.value = '';
+      status.textContent = 'Enter text to generate a hash.';
+      status.className = 'status-message';
+      return;
+    }
+
+    try {
+      const hashValue = await digestText(text, algorithm.value as HashAlgorithm);
+      if (token !== syncToken) {
+        return;
+      }
+      output.value = hashValue;
+      status.textContent = `${algorithm.value.toUpperCase()} hash generated successfully.`;
+      status.className = 'status-message status-success';
+    } catch (error) {
+      if (token !== syncToken) {
+        return;
+      }
+      output.value = '';
+      status.textContent = error instanceof Error ? error.message : 'Unable to generate hash.';
+      status.className = 'status-message status-error';
+    }
+  };
+
+  input.addEventListener('input', () => {
+    void sync();
+  });
+  algorithm.addEventListener('change', () => {
+    void sync();
+  });
+  getElement<HTMLButtonElement>(root, '[data-example]').addEventListener('click', () => {
+    input.value = 'abc';
+    void sync();
+  });
+  getElement<HTMLButtonElement>(root, '[data-clear]').addEventListener('click', () => {
+    input.value = '';
+    output.value = '';
+    void sync();
+  });
+  copyButton.addEventListener('click', async () => {
+    await copyText(output.value, copyButton);
+  });
 }
 
 function mountJsonFormatter(root: HTMLElement): void {
@@ -1292,6 +1443,15 @@ type CronParseResult = {
 };
 
 function mountCronTool(root: HTMLElement): void {
+type DiffOp = { type: 'equal' | 'insert' | 'delete'; value: string };
+
+type LineDiffRow =
+  | { kind: 'equal'; left: string; right: string }
+  | { kind: 'insert'; right: string }
+  | { kind: 'delete'; left: string }
+  | { kind: 'replace'; left: string; right: string };
+
+function mountDiffChecker(root: HTMLElement): void {
   root.innerHTML = `
     <div class="tool-layout">
       <section class="panel">
@@ -1605,6 +1765,268 @@ function describeCronField(value: string, label: CronFieldName): string {
 
 function expressionMatchesPreset(expression: string): boolean {
   return ['* * * * *', '0 * * * *', '0 0 * * *', '0 9 * * 1-5'].includes(expression);
+          <h2>Input text</h2>
+          <div class="panel-actions">
+            <button class="button button-ghost" data-example>Load Sample</button>
+            <button class="button button-ghost" data-clear>Reset</button>
+            <button class="button button-ghost" data-copy-left>Copy Left</button>
+            <button class="button button-ghost" data-copy-right>Copy Right</button>
+          </div>
+        </div>
+        <div class="diff-input-grid">
+          <label class="field">
+            <span>Left text</span>
+            <textarea class="input-area diff-input" data-left spellcheck="false" placeholder="Original text"></textarea>
+          </label>
+          <label class="field">
+            <span>Right text</span>
+            <textarea class="input-area diff-input" data-right spellcheck="false" placeholder="Updated text"></textarea>
+          </label>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Diff result</h2>
+          <button class="button button-ghost" data-copy-result>Copy Result</button>
+        </div>
+        <p class="status-message" data-status>Paste text on both sides to compare.</p>
+        <div class="diff-result" data-result></div>
+      </section>
+    </div>
+  `;
+
+  const left = getElement<HTMLTextAreaElement>(root, '[data-left]');
+  const right = getElement<HTMLTextAreaElement>(root, '[data-right]');
+  const status = getElement<HTMLElement>(root, '[data-status]');
+  const result = getElement<HTMLElement>(root, '[data-result]');
+  const copyLeft = getElement<HTMLButtonElement>(root, '[data-copy-left]');
+  const copyRight = getElement<HTMLButtonElement>(root, '[data-copy-right]');
+  const copyResult = getElement<HTMLButtonElement>(root, '[data-copy-result]');
+  let latestReport = '';
+  let debounceTimer = 0;
+
+  const sync = (): void => {
+    const leftText = left.value;
+    const rightText = right.value;
+
+    if (!leftText && !rightText) {
+      result.innerHTML = '<p class="empty-copy">Paste text on both sides to compare.</p>';
+      status.textContent = 'Paste text on both sides to compare.';
+      status.className = 'status-message';
+      latestReport = '';
+      return;
+    }
+
+    const rows = buildLineDiffRows(splitLines(leftText), splitLines(rightText));
+    const changedRows = rows.filter((row) => row.kind !== 'equal').length;
+
+    if (changedRows === 0) {
+      result.innerHTML = '<p class="empty-copy">No differences found.</p>';
+      status.textContent = 'No differences found.';
+      status.className = 'status-message status-success';
+      latestReport = 'No differences found.';
+      return;
+    }
+
+    result.innerHTML = rows.map(renderDiffRow).join('');
+    status.textContent = `${changedRows} changed line${changedRows === 1 ? '' : 's'} found.`;
+    status.className = 'status-message status-success';
+    latestReport = renderDiffReport(rows);
+  };
+
+  const scheduleSync = (): void => {
+    const lineCount = Math.max(splitLines(left.value).length, splitLines(right.value).length);
+    const delay = lineCount > 400 ? 180 : 0;
+    window.clearTimeout(debounceTimer);
+    debounceTimer = window.setTimeout(sync, delay);
+  };
+
+  left.addEventListener('input', scheduleSync);
+  right.addEventListener('input', scheduleSync);
+  getElement<HTMLButtonElement>(root, '[data-example]').addEventListener('click', () => {
+    left.value = `name: developer-tools
+version: 1.0.0
+features:
+  - json-formatter
+  - regex-tester
+  - unix-timestamp-converter`;
+    right.value = `name: developer-tools
+version: 1.1.0
+features:
+  - json-formatter
+  - diff-checker
+  - regex-tester
+  - unix-timestamp-converter`;
+    sync();
+  });
+  getElement<HTMLButtonElement>(root, '[data-clear]').addEventListener('click', () => {
+    left.value = '';
+    right.value = '';
+    sync();
+  });
+  copyLeft.addEventListener('click', async () => copyText(left.value, copyLeft));
+  copyRight.addEventListener('click', async () => copyText(right.value, copyRight));
+  copyResult.addEventListener('click', async () => copyText(latestReport, copyResult));
+
+  sync();
+}
+
+function splitLines(value: string): string[] {
+  return value.replace(/\r\n/g, '\n').split('\n');
+}
+
+function buildLineDiffRows(left: string[], right: string[]): LineDiffRow[] {
+  const ops = diffSequence(left, right);
+  const rows: LineDiffRow[] = [];
+
+  for (let index = 0; index < ops.length; index += 1) {
+    const current = ops[index];
+    const next = ops[index + 1];
+
+    if (current.type === 'delete' && next?.type === 'insert') {
+      rows.push({ kind: 'replace', left: current.value, right: next.value });
+      index += 1;
+      continue;
+    }
+
+    if (current.type === 'insert' && next?.type === 'delete') {
+      rows.push({ kind: 'replace', left: next.value, right: current.value });
+      index += 1;
+      continue;
+    }
+
+    if (current.type === 'equal') {
+      rows.push({ kind: 'equal', left: current.value, right: current.value });
+    } else if (current.type === 'delete') {
+      rows.push({ kind: 'delete', left: current.value });
+    } else {
+      rows.push({ kind: 'insert', right: current.value });
+    }
+  }
+
+  return rows;
+}
+
+function diffSequence(left: string[], right: string[]): DiffOp[] {
+  const leftLength = left.length;
+  const rightLength = right.length;
+  const table = Array.from({ length: leftLength + 1 }, () => Array<number>(rightLength + 1).fill(0));
+
+  for (let i = leftLength - 1; i >= 0; i -= 1) {
+    for (let j = rightLength - 1; j >= 0; j -= 1) {
+      table[i][j] =
+        left[i] === right[j] ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1]);
+    }
+  }
+
+  const ops: DiffOp[] = [];
+  let i = 0;
+  let j = 0;
+
+  while (i < leftLength && j < rightLength) {
+    if (left[i] === right[j]) {
+      ops.push({ type: 'equal', value: left[i] });
+      i += 1;
+      j += 1;
+      continue;
+    }
+
+    if (table[i + 1][j] >= table[i][j + 1]) {
+      ops.push({ type: 'delete', value: left[i] });
+      i += 1;
+    } else {
+      ops.push({ type: 'insert', value: right[j] });
+      j += 1;
+    }
+  }
+
+  while (i < leftLength) {
+    ops.push({ type: 'delete', value: left[i] });
+    i += 1;
+  }
+
+  while (j < rightLength) {
+    ops.push({ type: 'insert', value: right[j] });
+    j += 1;
+  }
+
+  return ops;
+}
+
+function renderDiffRow(row: LineDiffRow): string {
+  if (row.kind === 'equal') {
+    return `
+      <div class="diff-row">
+        <div class="diff-cell">${visualizeWhitespace(escapeHtml(row.left))}</div>
+        <div class="diff-cell">${visualizeWhitespace(escapeHtml(row.right))}</div>
+      </div>
+    `;
+  }
+
+  if (row.kind === 'delete') {
+    return `
+      <div class="diff-row">
+        <div class="diff-cell diff-cell-delete">${visualizeWhitespace(escapeHtml(row.left))}</div>
+        <div class="diff-cell diff-cell-empty">∅</div>
+      </div>
+    `;
+  }
+
+  if (row.kind === 'insert') {
+    return `
+      <div class="diff-row">
+        <div class="diff-cell diff-cell-empty">∅</div>
+        <div class="diff-cell diff-cell-insert">${visualizeWhitespace(escapeHtml(row.right))}</div>
+      </div>
+    `;
+  }
+
+  const leftParts = diffChars(row.left, row.right)
+    .filter((part) => part.type !== 'insert')
+    .map((part) =>
+      part.type === 'delete'
+        ? `<mark class="diff-char-delete">${visualizeWhitespace(escapeHtml(part.value))}</mark>`
+        : visualizeWhitespace(escapeHtml(part.value)),
+    )
+    .join('');
+  const rightParts = diffChars(row.left, row.right)
+    .filter((part) => part.type !== 'delete')
+    .map((part) =>
+      part.type === 'insert'
+        ? `<mark class="diff-char-insert">${visualizeWhitespace(escapeHtml(part.value))}</mark>`
+        : visualizeWhitespace(escapeHtml(part.value)),
+    )
+    .join('');
+
+  return `
+    <div class="diff-row">
+      <div class="diff-cell diff-cell-delete">${leftParts || '&nbsp;'}</div>
+      <div class="diff-cell diff-cell-insert">${rightParts || '&nbsp;'}</div>
+    </div>
+  `;
+}
+
+function diffChars(left: string, right: string): DiffOp[] {
+  return diffSequence(Array.from(left), Array.from(right));
+}
+
+function visualizeWhitespace(value: string): string {
+  return value.replaceAll(' ', '<span class="ws-marker">·</span>').replaceAll('\t', '<span class="ws-marker">→</span>');
+}
+
+function renderDiffReport(rows: LineDiffRow[]): string {
+  return rows
+    .filter((row) => row.kind !== 'equal')
+    .map((row) => {
+      if (row.kind === 'delete') {
+        return `- ${row.left}`;
+      }
+      if (row.kind === 'insert') {
+        return `+ ${row.right}`;
+      }
+      return `- ${row.left}\n+ ${row.right}`;
+    })
+    .join('\n');
 }
 
 function getElement<T extends Element>(root: ParentNode, selector: string): T {
@@ -1632,6 +2054,23 @@ async function copyText(value: string, trigger: HTMLButtonElement): Promise<void
   window.setTimeout(() => {
     trigger.textContent = label;
   }, 1200);
+}
+
+type HashAlgorithm = 'md5' | 'sha-1' | 'sha-256' | 'sha-512';
+
+async function digestText(value: string, algorithm: HashAlgorithm): Promise<string> {
+  if (algorithm === 'md5') {
+    return md5(value);
+  }
+
+  const subtleAlgorithm = algorithm.toUpperCase();
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest(subtleAlgorithm, bytes);
+  return bytesToHex(new Uint8Array(digest));
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 function utf8ToBase64(value: string): string {
@@ -1742,4 +2181,91 @@ function escapeHtml(value: string): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function md5(input: string): string {
+  const rotateLeft = (value: number, amount: number): number =>
+    ((value << amount) | (value >>> (32 - amount))) >>> 0;
+  const add = (a: number, b: number): number => ((a >>> 0) + (b >>> 0)) >>> 0;
+
+  const f = (x: number, y: number, z: number): number => (x & y) | (~x & z);
+  const g = (x: number, y: number, z: number): number => (x & z) | (y & ~z);
+  const h = (x: number, y: number, z: number): number => x ^ y ^ z;
+  const i = (x: number, y: number, z: number): number => y ^ (x | ~z);
+
+  const text = new TextEncoder().encode(input);
+  const bitLength = text.length * 8;
+  const withPaddingLength = (((text.length + 8) >>> 6) + 1) * 64;
+  const bytes = new Uint8Array(withPaddingLength);
+  bytes.set(text);
+  bytes[text.length] = 0x80;
+
+  const bitLengthLow = bitLength >>> 0;
+  const bitLengthHigh = Math.floor(bitLength / 0x100000000);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(withPaddingLength - 8, bitLengthLow, true);
+  view.setUint32(withPaddingLength - 4, bitLengthHigh, true);
+
+  let a0 = 0x67452301;
+  let b0 = 0xefcdab89;
+  let c0 = 0x98badcfe;
+  let d0 = 0x10325476;
+
+  const s = [
+    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9,
+    14, 20, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10,
+    15, 21, 6, 10, 15, 21,
+  ];
+  const k = Array.from({ length: 64 }, (_, index) => Math.floor(Math.abs(Math.sin(index + 1)) * 2 ** 32) >>> 0);
+
+  for (let offset = 0; offset < bytes.length; offset += 64) {
+    const chunk = new Uint32Array(16);
+    for (let index = 0; index < 16; index += 1) {
+      chunk[index] = view.getUint32(offset + index * 4, true);
+    }
+
+    let a = a0;
+    let b = b0;
+    let c = c0;
+    let d = d0;
+
+    for (let index = 0; index < 64; index += 1) {
+      let mix: number;
+      let blockIndex: number;
+
+      if (index < 16) {
+        mix = f(b, c, d);
+        blockIndex = index;
+      } else if (index < 32) {
+        mix = g(b, c, d);
+        blockIndex = (5 * index + 1) % 16;
+      } else if (index < 48) {
+        mix = h(b, c, d);
+        blockIndex = (3 * index + 5) % 16;
+      } else {
+        mix = i(b, c, d);
+        blockIndex = (7 * index) % 16;
+      }
+
+      const next = d;
+      d = c;
+      c = b;
+      const sum = add(add(a, mix), add(k[index], chunk[blockIndex]));
+      b = add(b, rotateLeft(sum, s[index]));
+      a = next;
+    }
+
+    a0 = add(a0, a);
+    b0 = add(b0, b);
+    c0 = add(c0, c);
+    d0 = add(d0, d);
+  }
+
+  const output = new Uint8Array(16);
+  const outputView = new DataView(output.buffer);
+  outputView.setUint32(0, a0, true);
+  outputView.setUint32(4, b0, true);
+  outputView.setUint32(8, c0, true);
+  outputView.setUint32(12, d0, true);
+  return bytesToHex(output);
 }

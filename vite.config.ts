@@ -6,6 +6,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         home: 'index.html',
+        hashGenerator: 'hash-generator/index.html',
         jsonFormatter: 'json-formatter/index.html',
         jwtDecoder: 'jwt-decoder/index.html',
         base64: 'base64-encode-decode/index.html',
@@ -14,6 +15,7 @@ export default defineConfig({
         timestamp: 'unix-timestamp-converter/index.html',
         regex: 'regex-tester/index.html',
         cron: 'cron-expression-builder-parser/index.html',
+        diffChecker: 'diff-checker/index.html',
       },
     },
   },

@@ -10,6 +10,7 @@ This project is a static multi-page Vite app built with client-side TypeScript a
 ## Current Tools
 
 - JSON Formatter / Validator
+- Hash Generator
 - JWT Decoder
 - Base64 Encode / Decode
 - UUID / ULID Generator
@@ -17,6 +18,7 @@ This project is a static multi-page Vite app built with client-side TypeScript a
 - Unix Timestamp Converter
 - Regex Tester
 - Cron Expression Builder / Parser
+- Diff Checker
 
 ## Product Direction
 
@@ -71,6 +73,7 @@ npm run preview
 .
 ├── .github/workflows/deploy-pages.yml
 ├── index.html
+├── hash-generator/index.html
 ├── json-formatter/index.html
 ├── jwt-decoder/index.html
 ├── base64-encode-decode/index.html
@@ -79,6 +82,7 @@ npm run preview
 ├── unix-timestamp-converter/index.html
 ├── regex-tester/index.html
 ├── cron-expression-builder-parser/index.html
+├── diff-checker/index.html
 ├── src/
 │   ├── app.ts
 │   ├── main.ts
